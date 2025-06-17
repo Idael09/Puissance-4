@@ -1,0 +1,432 @@
+### Modules
+
+import numpy as np
+import tkinter as tk
+from time import sleep
+
+### Min-Max
+
+def minmax1(n,pos,heuristique):
+    P=prochains(pos)
+    if n==0 or len(P)==0:
+        return heuristique(pos)
+    else:
+        mini = np.inf
+        for q in P:
+           val = maxmin(n-1,q,heuristique)
+           if val < mini:
+               mini = val
+        return mini
+
+def maxmin1(n,pos,heuristique):
+    P=prochains(pos)
+    if n==0 or len(P)==0:
+        return heuristique(pos)
+    else:
+        maxi = -np.inf
+        for q in P:
+           val = minmax(n-1,q,heuristique)
+           if val > maxi:
+               maxi = val
+        return maxi
+
+#### Min-max avec dÃ©cision !
+
+### Min-Max
+
+def minmax(n,pos,heuristique):
+    P=prochains(pos,-1)
+    if n==0 or len(P)==0:
+        return heuristique(pos),pos
+    else:
+        mini = np.inf
+        pmini = pos
+        for q in P:
+           val = maxmin(n-1,q,heuristique)[0]
+           if val < mini:
+               mini = val
+               pmini = q
+        return mini,pmini
+
+def maxmin(n,pos,heuristique):
+    P=prochains(pos,1)
+    if n==0 or len(P)==0:
+        return heuristique(pos),pos
+    else:
+        maxi = -np.inf
+        pmaxi = pos
+        for q in P:
+           val = minmax(n-1,q,heuristique)[0]
+           if val > maxi:
+               maxi = val
+               pmaxi = q
+        return maxi,pmaxi
+
+#### P4
+
+## ParamÃ¨tres
+
+L=7
+H=6
+
+## fonctions de jeu
+
+def plateau_initial():
+    return np.zeros((H,L), dtype=int)
+
+def jouer(plateau,col,joueur):
+    colonne = plateau[:,col]
+    if colonne[0]!=0:
+        return False,(-1,-1)
+    lig=0
+    while lig+1<H and colonne[lig+1]==0:
+        lig+=1
+    plateau[lig,col]=joueur
+    return True,(lig,col)
+
+def victoire(plateau,pos):
+    joueur=plateau[pos]
+    l,c = pos
+    #test horizontal
+    jd,jg=0,0
+    while c+jd+1<L and plateau[l,c+1+jd]==joueur:
+        jd+=1
+    while c-1-jg>=0 and plateau[l,c-1-jg]==joueur:
+        jg+=1
+    if jd+jg+1>=4:
+        return True
+    #test vertical
+    id,ig=0,0
+    while l+id+1<H and plateau[l+1+id,c]==joueur:
+        id+=1
+    while l-1-ig>=0 and plateau[l-1-ig,c]==joueur:
+        ig+=1
+    if id+ig+1>=4:
+        return True
+    #test diagonale 1
+    dd,dg=0,0
+    while (l+1+dd<H and c+1+dd<L) and plateau[l+1+dd,c+1+dd]==joueur:
+        dd+=1
+    while (l-1-dg>=0 and c-1-dg>=0) and plateau[l-1-dg,c-1-dg]==joueur:
+        dg+=1
+    if dd+dg+1>=4:
+        return True
+    #test diagonale 2
+    dd,dg=0,0
+    while (l+1+dd<H and c-1-dd>=0) and plateau[l+1+dd,c-1-dd]==joueur:
+        dd+=1
+    while (l-1-dg>=0 and c+1+dg<L) and plateau[l-1-dg,c+1+dg]==joueur:
+        dg+=1
+    if dd+dg+1>=4:
+        return True
+    return False
+
+def positions_jouables(plateau):
+    P=[]
+    for col in range(L):
+        colonne = plateau[:,col]
+        if colonne[0]==0:
+            lig=0
+            while lig+1<H and colonne[lig+1]==0:
+                lig+=1
+            P.append((lig,col))
+    return P
+
+def victorieux(plateau):
+    for j in range(L):
+        i=0
+        while i<H and plateau[i,j]==0:
+            i+=1
+        if i!= H and victoire(plateau,(i,j)):
+            return True,plateau[i,j]
+    return False,None
+
+
+def colonnes_jouables(plateau):
+    return [pos[1] for pos in positions_jouables(plateau)]
+
+def prochains(plateau,joueur):
+    if victorieux(plateau)[0]:
+        return []
+    P=[]
+    for pos in positions_jouables(plateau):
+        p=plateau.copy()
+        p[pos]=joueur
+        P.append(p)
+    return P
+
+def joue_ou(p,q):
+    for i in range(H):
+        for j in range(L):
+            if p[i,j]!=q[i,j]:
+                return (i,j)
+
+### Jeux
+
+##paramÃ¨tres dessin
+
+carre = 100
+rayon_jeton = 85
+marge = (100-rayon_jeton)/2
+couleurs = {0: 'white', 1:'yellow', -1:'red'}
+noms = {1:'Jaune',-1:'Rouge'}
+texte_titre = 'Puissance 4 : tour du joueur '
+texte_info = "Informations de jeu"
+
+## fonctions de jeu
+
+def dessiner_plateau(plateau,canvas):
+    """ taille du canvas : w=L*carre, h=H*carre """
+    for l in range(H):
+        for c in range(L):
+            hd,hf=l*carre+marge,(l+1)*carre-marge
+            wd,wf=c*carre+marge,(c+1)*carre-marge
+            canvas.create_oval((wd,hd), (wf,hf), fill=couleurs[plateau[l,c]])
+
+def dessiner_ligne(plateau,canvas,col):
+    col = {0: 'white', 1:'yellow', -1:'red'}
+    canvas.create_rectangle(0,0,L*carre,carre,fill='blue',outline='')
+    for c in range(L):
+        if c!=col:
+            hd,hf=marge,carre-marge
+            wd,wf=c*carre+marge,(c+1)*carre-marge
+            canvas.create_oval((wd,hd), (wf,hf), fill=col[plateau[0,c]])
+
+##Jeu Ã  deux
+
+def p4():
+    #initialisation du jeu
+    global joueur
+    joueur = 1
+    p=plateau_initial()
+    #FenÃªtre
+    f = tk.Tk()
+    t=tk.Label(f,text=texte_titre+noms[joueur],background='yellow')
+    t.pack(side=tk.TOP)
+    c = tk.Canvas(f, width=L*carre,height=H*carre,background='blue')
+    dessiner_plateau(p,c)
+    c.pack(side=tk.TOP)
+    b=tk.Label(f,text=texte_info)
+    b.pack(side=tk.BOTTOM)
+    def deplacement(event):
+        x = f.winfo_pointerx() - f.winfo_rootx()
+        col = np.floor(x/carre)
+        dessiner_ligne(p,c,col)
+        c.create_line(col*carre+carre/2, 0, col*carre+carre/2, carre/2, arrow=tk.LAST,width=10,fill='black')
+        c.create_line(col*carre+carre/2, 0, col*carre+carre/2, carre/2-2, arrow=tk.LAST,width=2,fill=couleurs[joueur])
+    c.bind('<Motion>', deplacement)
+    def jouer_canvas(event):
+        x = f.winfo_pointerx() - f.winfo_rootx()
+        col = int(x/carre)
+        global joueur
+        Jeu=jouer(p,col,joueur)
+        if not Jeu[0]:
+            b.config(text = "Vous ne pouvez pas jouer ici !! Recommencez !")
+        else:
+            dessiner_plateau(p,c)
+            if victoire(p,Jeu[1]):
+                b.config(text = 'VICTOIRE du joueur '+noms[joueur],background=couleurs[joueur])
+                c.unbind('<Motion>')
+                c.unbind('<Button-1>')
+            else:
+                b.config(text = texte_info)
+                joueur*=-1 # changement de joueur
+                t.config(text = texte_titre+noms[joueur],background=couleurs[joueur])
+    c.bind('<Button-1>', jouer_canvas)
+    f.mainloop()
+
+### Jeu contre IA
+
+def p4_ia(h,n):
+    #initialisation du jeu
+    global joueur
+    joueur = 1
+    global p
+    p=plateau_initial()
+    #FenÃªtre
+    f = tk.Tk()
+    t=tk.Label(f,text=texte_titre+noms[joueur],background='yellow')
+    t.pack(side=tk.TOP)
+    c = tk.Canvas(f, width=L*carre,height=H*carre,background='blue')
+    dessiner_plateau(p,c)
+    c.pack(side=tk.TOP)
+    b=tk.Label(f,text=texte_info)
+    b.pack(side=tk.BOTTOM)
+    def deplacement(event):
+        x = f.winfo_pointerx() - f.winfo_rootx()
+        col = np.floor(x/carre)
+        dessiner_ligne(p,c,col)
+        c.create_line(col*carre+carre/2, 0, col*carre+carre/2, carre/2, arrow=tk.LAST,width=10,fill='black')
+        c.create_line(col*carre+carre/2, 0, col*carre+carre/2, carre/2-2, arrow=tk.LAST,width=2,fill=couleurs[joueur])
+    c.bind('<Motion>', deplacement)
+    def jouer_canvas(event):
+        global p
+        #l'humain joue !
+        x = f.winfo_pointerx() - f.winfo_rootx()
+        col = int(x/carre)
+        Jeu=jouer(p,col,1)
+        if not Jeu[0]:
+            b.config(text = "Vous ne pouvez pas jouer ici !! Recommencez !")
+        else:
+            dessiner_plateau(p,c)
+            c.update()
+            if victoire(p,Jeu[1]):
+                b.config(text = 'VICTOIRE du joueur '+noms[1],background=couleurs[1])
+                c.unbind('<Motion>')
+                c.unbind('<Button-1>')
+            else: #l'IA joue
+                b.config(text = texte_info)
+                t.config(text = texte_titre+noms[-1]+' l\'IA !',background=couleurs[-1])
+                c.unbind('<Motion>')
+                c.unbind('<Button-1>')
+                sleep(1) #l'IA fait semblant de rÃ©flÃ©chir
+                pa = p.copy()
+                p = IA(p,h,n)
+                dessiner_plateau(p,c)
+                if victoire(p,joue_ou(p,pa)):
+                    b.config(text = 'VICTOIRE de l\'IA... la honte !',background=couleurs[-1])
+                else:
+                    t.config(text = texte_titre+noms[1],background=couleurs[1])
+                    c.bind('<Motion>', deplacement)
+                    c.bind('<Button-1>', jouer_canvas)
+    c.bind('<Button-1>', jouer_canvas)
+    f.mainloop()
+
+#### Heuristique
+
+## H0
+
+def h0(p):
+    b,joueur = victorieux(p)
+    if b:
+        return joueur*np.inf
+    return 0
+
+## H1
+
+max_alignement =np.array([
+[ 2,  4,  5,  7,  5,  4,  3],
+[ 4,  6,  8, 10,  8,  6,  4],
+[ 5,  8, 11, 13, 11,  8,  5],
+[ 5,  8, 11, 13, 11,  8,  5],
+[ 4,  6,  8, 10,  8,  6,  4],
+[ 3,  4,  5,  7,  5,  4,  3]
+],dtype=int)
+
+def h1s(p):
+    score = 0
+    for i in range(H):
+        for j in range(L):
+            score+=max_alignement[i,j]*p[i,j]
+    return score
+
+def h1(p):
+    if h0(p)!=0:
+        return h0(p)
+    score = 0
+    for i in range(H):
+        for j in range(L):
+            score+=max_alignement[i,j]*p[i,j]
+    return score
+
+### H2
+
+def h2s(p):
+    J,R=0,0
+    for pos in positions_jouables(p):
+        q=p.copy()
+        q[pos]=1
+        if victoire(q,pos):
+            J+=1
+        q[pos]=-1
+        if victoire(q,pos):
+            R+=1
+        return J-R
+
+
+def h2(p):
+    if h0(p)!=0:
+        return h0(p)
+    J,R=0,0
+    for pos in positions_jouables(p):
+        q=p.copy()
+        q[pos]=1
+        if victoire(q,pos):
+            J+=1
+        q[pos]=-1
+        if victoire(q,pos):
+            R+=1
+        return J-R
+
+### H3
+
+def trois_alignes(p,pos):
+    joueur=p[pos] #numero du joueur (1 ou -1)
+    l,c = pos[0],pos[1]
+    #test horizontal
+    j=1
+    while c-j>=0 and  j<=2 and p[l,c-j]==joueur:
+        j+=1
+    k=3-j
+    while c+k<L and k>0 and p[l,c+k]==joueur:
+        k-=1
+    if k==0:
+        return True
+    #test vertical
+    j=1
+    while l-j>=0 and  j<=2 and p[l-j,c]==joueur:
+        j+=1
+    k=3-j
+    while c+k<H and k>0 and p[l+k,c]==joueur:
+        k-=1
+    if k==0:
+        return True
+    #test diagonal1
+    j=1
+    while c-j>=0 and l-j>=0 and j<=2 and p[l-j,c-j]==joueur:
+        j+=1
+    k=3-j
+    while c+k<L and l+k<H and k>0 and p[l+k,c+k]==joueur:
+        k-=1
+    if k==0:
+        return True
+    #test diagonal2
+    j=1
+    while c-j>=0 and l+j<H and j<=2 and p[l+j,c-j]==joueur:
+        j+=1
+    k=3-j
+    while c+k<L and l-k>=0 and k>0 and p[l-k,c+k]==joueur:
+        k-=1
+    if k==0:
+        return True
+    return False
+
+def h3(p):
+    if h0(p)!=0:
+        return h0(p)
+    J,R=0,0
+    for pos in positions_jouables(p):
+            q=p.copy()
+            q[pos]=1 #jaune joue ici
+            if trois_alignes(q,pos):
+                J+=1
+            q=p.copy()
+            q[pos]=1 #rouge joue ici
+            if trois_alignes(q,pos):
+                R+=1
+    return J-R
+
+### IA
+from random import choice
+
+def IA(p,h,n):
+    pf=minmax(n,p,h)[1]
+    if (pf==p).all():
+        pos = choice(positions_jouables(pf))
+        pf[pos]=-1
+    return pf
+
+if __name__ == "__main__":
+    # Exemple : lancer une partie contre l'IA avec profondeur 3 et heuristique h1
+    p4_ia(h1, 3)
+
