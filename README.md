@@ -28,3 +28,9 @@ Ce projet est un jeu **Puissance 4** développé en **Python** avec :
 
 👉 Toutes sont disponibles par défaut ou installables via `pip`.
 
+## 🚀 Lancer le jeu
+
+1. Clone ce repo :
+```bash
+git clone https://github.com/ton-utilisateur/puissance4-python.git
+
