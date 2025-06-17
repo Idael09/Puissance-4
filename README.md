@@ -30,7 +30,7 @@ Ce projet est un jeu **Puissance 4** développé en **Python** avec :
 
 ## 🚀 Lancer le jeu
 
-1. Clone ce repo :
+1. Clone ce depot :
 ```bash
-git clone https://github.com/ton-utilisateur/puissance4-python.git
+git clone https://github.com/Idael09/Puissance-4
 
